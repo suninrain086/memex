@@ -234,12 +234,25 @@ program
 
 program
   .command("import [source]")
-  .description("Import memories from other tools (openclaw, ...)")
+  .description("Import memories from other tools (openclaw, claude-code, ...)")
   .option("--dry-run", "Preview without writing")
-  .option("--dir <path>", "Override source directory")
-  .action(async (source: string | undefined, opts: { dryRun?: boolean; dir?: string }) => {
+  .option("--dir <path>", "Override source directory (bulk-file importers)")
+  .option("--since <date>", "Only sessions started on/after YYYY-MM-DD (session importers)")
+  .option("--project <path>", "Filter by project cwd or encoded dir name (session importers)")
+  .option("--max-sessions <n>", "Cap session count, newest first (session importers)")
+  .option("--model <id>", "Override distill model id (session importers)")
+  .option("--review", "Log a one-line preview per card before writing")
+  .action(async (source: string | undefined, opts: { dryRun?: boolean; dir?: string; since?: string; project?: string; maxSessions?: string; model?: string; review?: boolean }) => {
     const store = await getStore();
-    const result = await importCommand(store, source, opts);
+    const result = await importCommand(store, source, {
+      dryRun: opts.dryRun,
+      dir: opts.dir,
+      since: opts.since,
+      project: opts.project,
+      maxSessions: opts.maxSessions ? parseInt(opts.maxSessions, 10) : undefined,
+      model: opts.model,
+      review: opts.review,
+    });
     if (result.output) process.stdout.write(result.output + "\n");
     if (!result.success) {
       if (result.error) process.stderr.write(result.error + "\n");
