@@ -250,6 +250,54 @@ post:organize → autoSync
 - Lifecycle hooks: `before_agent_start` (recall reminder), `agent_end` (retro reminder)
 - Slash commands: `/memex`, `/memex-serve`, `/memex-sync`
 
+## 10.5 Agent Session Importers
+
+Bulk-import historical AI agent conversations and distill them into atomic Zettelkasten cards.
+
+### Pipeline
+
+```
+SessionAdapter.listSessions()
+  → CanonicalSession[]
+    → chunkSession(cap=8K tokens, split at user boundaries)
+      → DistillerFn (LLM call)
+        → CardDraft[] (0–3 atomic insights per chunk)
+          → resolveWikilinks + resolveSlugForWrite (idempotent)
+            → store.writeCard()
+```
+
+### Files (`src/importers/agent-sessions/`)
+
+| File | Role |
+|------|------|
+| `types.ts` | `CanonicalSession`, `CardDraft`, `SessionAdapter`, `DistillerFn`, `PipelineOptions` |
+| `chunker.ts` | `estimateTokens` (≈chars/4), `chunkSession` (greedy pack, user-boundary split) |
+| `distiller.ts` | `createCopilotDistiller` — Anthropic Messages API via copilot-gateway worker |
+| `dedup.ts` | `slugify` (kebab, ASCII, ≤60), `resolveSlugForWrite` (idempotent skip on same source+session_id), `resolveWikilinks` |
+| `pipeline.ts` | `runPipeline` — orchestrates discover → chunk → distill → dedup → write |
+| `claude-code.ts` | `ClaudeCodeAdapter` reads `~/.claude/projects/<encoded-cwd>/<sessionId>.jsonl` |
+| `claude-code-importer.ts` | Wraps adapter as `Importer`; reads `JACKY_COPILOT_KEY` env |
+
+### Idempotency
+
+Each card carries `source` + `session_id` + `session_cwd` frontmatter. Re-importing the same session detects the prior card via slug collision + frontmatter match and skips it.
+
+### CLI
+
+```bash
+memex import claude-code [--since YYYY-MM-DD] [--project <path>] \
+                          [--max-sessions N] [--model <id>] [--dry-run] [--review]
+```
+
+Default model: `claude-opus-4-7`. Worker base: `https://copilot.suninrain086.workers.dev`. The `--dry-run` flag counts proposed writes without touching disk; `--review` is reserved for future interactive curation.
+
+### Adding a new adapter
+
+1. Implement `SessionAdapter` (returns `CanonicalSession[]`).
+2. Wrap with an `Importer` (mirrors `claude-code-importer.ts`).
+3. Register in `src/importers/index.ts`.
+4. Add a CLI subcommand in `src/cli.ts` if needed (or reuse `memex import <name>`).
+
 ## 11. Build & Test
 
 ### Build

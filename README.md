@@ -98,6 +98,20 @@ memex sync                    # sync via git
 memex mcp                     # start MCP server (stdio)
 ```
 
+### Importing past agent sessions
+
+Distill historical Claude Code transcripts into atomic memex cards:
+
+```bash
+export JACKY_COPILOT_KEY=...                        # copilot-gateway worker key
+memex import claude-code --dry-run                  # preview without writing
+memex import claude-code --since 2026-04-01         # limit by date
+memex import claude-code --project /path/to/repo    # one project only
+memex import claude-code --max-sessions 5           # cap session count
+```
+
+Each session is chunked at user-message boundaries (≤8K tokens), sent to Claude Opus for distillation, and written as 0–3 atomic cards per chunk with `source: claude-code` and `session_id` frontmatter. Re-imports are idempotent.
+
 ### How it works
 
 Based on Niklas Luhmann's Zettelkasten method — the system behind 70 books from 90,000 handwritten cards:
