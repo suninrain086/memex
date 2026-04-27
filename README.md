@@ -103,12 +103,19 @@ memex mcp                     # start MCP server (stdio)
 Distill historical Claude Code transcripts into atomic memex cards:
 
 ```bash
+# First-time setup (or after pulling this branch — dist/ is NOT committed on
+# feature branches, you must rebuild before invoking the CLI):
+npm install && npm run build
+
 export JACKY_COPILOT_KEY=...                        # copilot-gateway worker key
-memex import claude-code --dry-run                  # preview without writing
-memex import claude-code --since 2026-04-01         # limit by date
-memex import claude-code --project /path/to/repo    # one project only
-memex import claude-code --max-sessions 5           # cap session count
+node dist/cli.js import claude-code --dry-run                  # preview without writing
+node dist/cli.js import claude-code --since 2026-04-01         # limit by date
+node dist/cli.js import claude-code --project /path/to/repo    # one project only
+node dist/cli.js import claude-code --max-sessions 5           # cap session count
 ```
+
+> If you see `error: unknown option '--project'` (or any other new flag), your
+> `dist/cli.js` is stale — run `npm run build` and retry.
 
 Each session is chunked at user-message boundaries (≤8K tokens), sent to Claude Opus for distillation, and written as 0–3 atomic cards per chunk with `source: claude-code` and `session_id` frontmatter. Re-imports are idempotent.
 

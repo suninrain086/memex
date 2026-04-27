@@ -163,6 +163,10 @@ curl -sS https://copilot.suninrain086.workers.dev/v1/messages \
 cd ~/work/projects/github/memex
 npm install
 npm run build
+
+# IMPORTANT: dist/ is NOT committed on this feature branch. After every
+# `git pull` / `git checkout` of this branch, re-run `npm run build` or
+# the CLI will be missing the new --project / --since / etc. flags.
 ```
 
 ### 6.2 Dry-run preview (recommended first step)
